@@ -1,54 +1,48 @@
 #include <stdlib.h>
 
+int cmp(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
+
 int subarrayBitwiseORs(int* arr, int arrSize) {
     if (arrSize == 0) return 0;
-    
-    int* ans = (int*)malloc(32 * arrSize * sizeof(int));
+
+    int* ans = (int*)malloc(arrSize * 32 * sizeof(int));
     int ansSize = 0;
     
-    int* cur = (int*)malloc(32 * sizeof(int));
-    int curSize = 0;
-    
+    int left = 0;
+    int right = 0;
+
     for (int i = 0; i < arrSize; i++) {
-        int* next = (int*)malloc(32 * sizeof(int));
-        int nextSize = 0;
-        
-        next[nextSize++] = arr[i];
-        
-        for (int j = 0; j < curSize; j++) {
-            int val = cur[j] | arr[i];
-            int dup = 0;
-            for (int k = 0; k < nextSize; k++) {
-                if (next[k] == val) {
-                    dup = 1;
-                    break;
-                }
-            }
-            if (!dup) {
-                next[nextSize++] = val;
-            }
-        }
-        
-        free(cur);
-        cur = next;
-        curSize = nextSize;
-        
-        for (int j = 0; j < curSize; j++) {
-            int val = cur[j];
-            int dup = 0;
-            for (int k = 0; k < ansSize; k++) {
-                if (ans[k] == val) {
-                    dup = 1;
-                    break;
-                }
-            }
-            if (!dup) {
+        int start = ansSize;
+        ans[ansSize++] = arr[i];
+
+        for (int j = left; j < right; j++) {
+            int val = ans[j] | arr[i];
+            if (ans[ansSize - 1] != val) {
                 ans[ansSize++] = val;
             }
         }
+
+        left = start;
+        right = ansSize;
     }
-    
-    free(cur);
+
+    qsort(ans, ansSize, sizeof(int), cmp);
+
+    if (ansSize == 0) {
+        free(ans);
+        return 0;
+    }
+
+    int uniqueCount = 1;
+    for (int i = 1; i < ansSize; i++) {
+        if (ans[i] != ans[i - 1]) {
+            uniqueCount++;
+        }
+    }
+
     free(ans);
-    return ansSize;
+    return uniqueCount;
 }
+
