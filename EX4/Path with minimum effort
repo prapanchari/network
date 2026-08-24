@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+#define INF 10000000
+
+struct HeapNode {
+    int r;
+    int c;
+    int effort;
+};
+
+void swap(struct HeapNode* x, struct HeapNode* y) {
+    struct HeapNode temp = *x;
+    *x = *y;
+    *y = temp;
+}
+
+void minHeapify(struct HeapNode heap[], int size, int i) {
+    int smallest = i;
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+
+    if (left < size && heap[left].effort < heap[smallest].effort)
+        smallest = left;
+    if (right < size && heap[right].effort < heap[smallest].effort)
+        smallest = right;
+
+    if (smallest != i) {
+        swap(&heap[i], &heap[smallest]);
+        minHeapify(heap, size, smallest);
+    }
+}
+
+void push(struct HeapNode heap[], int* size, struct HeapNode node) {
+    int i = *size;
+    heap[i] = node;
+    (*size)++;
+
+    while (i != 0 && heap[(i - 1) / 2].effort > heap[i].effort) {
+        swap(&heap[i], &heap[(i - 1) / 2]);
+        i = (i - 1) / 2;
+    }
+}
+
+struct HeapNode pop(struct HeapNode heap[], int* size) {
+    struct HeapNode root = heap[0];
+    heap[0] = heap[*size - 1];
+    (*size)--;
+    minHeapify(heap, *size, 0);
+    return root;
+}
+
+int minimumEffortPath(int** heights, int heightsSize, int* heightsColSize) {
+    int rows = heightsSize;
+    int cols = heightsColSize[0];
+    int i, j;
+    
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    int** effort_matrix = (int**)malloc(rows * sizeof(int*));
+    for (i = 0; i < rows; i++) {
+        effort_matrix[i] = (int*)malloc(cols * sizeof(int));
+        for (j = 0; j < cols; j++) {
+            effort_matrix[i][j] = INF;
+        }
+    }
+
+    struct HeapNode* heap = (struct HeapNode*)malloc(rows * cols * sizeof(struct HeapNode));
+    int heap_size = 0;
+
+    effort_matrix[0][0] = 0;
+    struct HeapNode start = {0, 0, 0};
+    push(heap, &heap_size, start);
+
+    while (heap_size > 0) {
+        struct HeapNode curr = pop(heap, &heap_size);
+        int r = curr.r;
+        int c = curr.c;
+        int e = curr.effort;
+
+        if (r == rows - 1 && c == cols - 1) {
+            int result = e;
+            for (i = 0; i < rows; i++) free(effort_matrix[i]);
+            free(effort_matrix);
+            free(heap);
+            return result;
+        }
+
+        if (e > effort_matrix[r][c]) continue;
+
+        for (i = 0; i < 4; i++) {
+            int nr = r + dr[i];
+            int nc = c + dc[i];
+
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                int diff = abs(heights[r][c] - heights[nr][nc]);
+                int max_effort = (diff > e) ? diff : e;
+
+                if (max_effort < effort_matrix[nr][nc]) {
+                    effort_matrix[nr][nc] = max_effort;
+                    struct HeapNode next_node = {nr, nc, max_effort};
+                    push(heap, &heap_size, next_node);
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < rows; i++) free(effort_matrix[i]);
+    free(effort_matrix);
+    free(heap);
+
+    return 0;
+}
