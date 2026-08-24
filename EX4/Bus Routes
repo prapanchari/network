@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define MAX_STOPS 1000000
+
+struct Node {
+    int val;
+    struct Node* next;
+};
+
+void insert(struct Node** head, int val) {
+    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+    newNode->val = val;
+    newNode->next = *head;
+    *head = newNode;
+}
+
+int numBusesToDestination(int** routes, int routesSize, int* routesColSize, int source, int target) {
+    int i, j;
+    int head_idx, tail_idx;
+    int curr_route, curr_bus_count;
+    struct Node* temp;
+    struct Node* curr;
+
+    if (source == target) return 0;
+
+    struct Node** stop_to_routes = (struct Node**)calloc(MAX_STOPS, sizeof(struct Node*));
+    for (i = 0; i < routesSize; i++) {
+        for (j = 0; j < routesColSize[i]; j++) {
+            insert(&stop_to_routes[routes[i][j]], i);
+        }
+    }
+
+    int* queue_route = (int*)malloc(routesSize * sizeof(int));
+    int* queue_buses = (int*)malloc(routesSize * sizeof(int));
+    bool* visited_routes = (bool*)calloc(routesSize, sizeof(bool));
+    bool* visited_stops = (bool*)calloc(MAX_STOPS, sizeof(bool));
+
+    head_idx = 0;
+    tail_idx = 0;
+
+    visited_stops[source] = true;
+    temp = stop_to_routes[source];
+    while (temp != NULL) {
+        int r = temp->val;
+        if (!visited_routes[r]) {
+            visited_routes[r] = true;
+            queue_route[tail_idx] = r;
+            queue_buses[tail_idx] = 1;
+            tail_idx++;
+        }
+        temp = temp->next;
+    }
+
+    while (head_idx < tail_idx) {
+        curr_route = queue_route[head_idx];
+        curr_bus_count = queue_buses[head_idx];
+        head_idx++;
+
+        for (j = 0; j < routesColSize[curr_route]; j++) {
+            int stop = routes[curr_route][j];
+            if (stop == target) {
+                for (i = 0; i < MAX_STOPS; i++) {
+                    curr = stop_to_routes[i];
+                    while (curr != NULL) {
+                        struct Node* nextNode = curr->next;
+                        free(curr);
+                        curr = nextNode;
+                    }
+                }
+                free(stop_to_routes);
+                free(queue_route);
+                free(queue_buses);
+                free(visited_routes);
+                free(visited_stops);
+                return curr_bus_count;
+            }
+
+            if (!visited_stops[stop]) {
+                visited_stops[stop] = true;
+                temp = stop_to_routes[stop];
+                while (temp != NULL) {
+                    int next_r = temp->val;
+                    if (!visited_routes[next_r]) {
+                        visited_routes[next_r] = true;
+                        queue_route[tail_idx] = next_r;
+                        queue_buses[tail_idx] = curr_bus_count + 1;
+                        tail_idx++;
+                    }
+                    temp = temp->next;
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < MAX_STOPS; i++) {
+        curr = stop_to_routes[i];
+        while (curr != NULL) {
+            struct Node* nextNode = curr->next;
+            free(curr);
+            curr = nextNode;
+        }
+    }
+    free(stop_to_routes);
+    free(queue_route);
+    free(queue_buses);
+    free(visited_routes);
+    free(visited_stops);
+
+    return -1;
+}
