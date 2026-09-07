@@ -1,1 +1,38 @@
 
+#include <stdio.h>
+
+#define STAGE_ERR_FRAME 1
+#define STAGE_ERR_ACK   2
+#define STAGE_ERR_DUP   3
+#define STAGE_ERR_TIME  4
+
+void stopAndWait(int frameCount, int targetFrame, int incident) {
+    int idx, totalTx = 0;
+    printf("\n>>> ENGINE ACTIVE: STOP-AND-WAIT ARQ <<<\n");
+    printf("Fixed Window Length = 1\n");
+
+    for (idx = 0; idx < frameCount; idx++) {
+        printf("\n-> [Tx] Dispatching Frame #%d\n", idx);
+        totalTx++;
+
+        if (idx == targetFrame) {
+            if (incident == STAGE_ERR_FRAME) {
+                printf(" ! [Ch] Frame %d suffered channel loss\n", idx);
+                printf(" * [Tx] Retransmission timer expired for Frame %d\n", idx);
+                printf(" -> [Tx] Redispatching Frame #%d\n", idx);
+                totalTx++;
+                printf(" <- [Rx] Frame %d processed successfully\n", idx);
+                printf(" <- [Rx] ACK %d confirmed\n", idx);
+            } else if (incident == STAGE_ERR_ACK) {
+                printf(" <- [Rx] Frame %d processed successfully\n", idx);
+                printf(" ! [Ch] Return path dropped ACK %d\n", idx);
+                printf(" * [Tx] Retransmission timer expired (No ACK incoming)\n", idx);
+                printf(" -> [Tx] Redispatching Frame #%d\n", idx);
+                totalTx++;
+                printf(" <- [Rx] Frame %d identified as CLONE! Discarding...\n", idx);
+                printf(" <- [Rx] ACK %d confirmed successfully\n", idx);
+            } else if (incident == STAGE_ERR_DUP) {
+                printf(" <- [Rx] Frame %d processed successfully\n", idx);
+                printf(" <- [Rx] ACK %d confirmed\n", idx);
+                printf(" ! [Tx] Simulating driver glitch: Forcing duplicate Frame %d\n", idx);
+                totalTx++;
